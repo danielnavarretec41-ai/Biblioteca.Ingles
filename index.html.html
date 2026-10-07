@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Digital Académica</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        olive: {
+                            50: '#f4f6f0',
+                            100: '#e5ebd9',
+                            200: '#cbd7b4',
+                            300: '#abc088',
+                            400: '#8ca760',
+                            500: '#6c8942',
+                            600: '#556b2f',
+                            700: '#445625',
+                            800: '#35431e',
+                            900: '#2c371b',
+                            950: '#171e0e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-olive-50 min-h-screen flex flex-col font-sans text-slate-800">
+
+    <!-- STUDENT REGISTRATION MODAL -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-olive-950/80 backdrop-blur-md px-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-olive-200">
+            <div class="text-center mb-6">
+                <div class="bg-olive-100 text-olive-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fa-solid fa-graduation-cap text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-olive-900">Biblioteca Digital Superior</h2>
+                <p class="text-xs text-slate-500 mt-1">Ingrese sus datos institucionales para acceder al catálogo completo de recursos académicos y literatura.</p>
+            </div>
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nombre Completo</label>
+                    <input type="text" id="studentName" required placeholder="Ej. Ana María Gómez" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-olive-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="studentEmail" required placeholder="correo@institucion.cl" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-olive-600 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-olive-700 hover:bg-olive-800 text-white font-semibold py-3 rounded-xl transition-all shadow-md text-sm mt-2 flex items-center justify-center space-x-2">
+                    <span>Acceder al Catálogo</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </form>
+            <p class="text-[10px] text-slate-400 text-center mt-4">Sus accesos y descargas quedan registrados con fines académicos.</p>
+        </div>
+    </div>
+
+    <!-- HEADER SECTION -->
+    <header class="bg-olive-800 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10">
+                    <i class="fa-solid fa-book-bookmark text-2xl text-olive-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Biblioteca Digital Académica</h1>
+                    <p class="text-olive-200 text-xs">Estudiante activo: <span id="displayStudent" class="font-semibold underline"></span></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="relative w-full sm:w-80">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-300">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="filterBooks()" placeholder="Buscar libro, autor o materia..." class="w-full pl-9 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-xs text-white placeholder-olive-200 focus:outline-none focus:ring-2 focus:ring-olive-300 focus:bg-white/20 transition-all">
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 MAIN CATEGORIES & LITERATURE SUB-FILTERS -->
+        <div class="bg-olive-900/60 border-t border-olive-700/50 px-4 sm:px-6 lg:px-8 py-3">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                <!-- Main 3 Categories -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="setCategory('all')" id="cat-all" class="category-btn px-4 py-2 rounded-lg text-xs font-bold bg-olive-600 text-white transition-all shadow-sm">📚 Todos</button>
+                    <button onclick="setCategory('dictionaries')" id="cat-dictionaries" class="category-btn px-4 py-2 rounded-lg text-xs font-semibold bg-white/10 text-olive-200 hover:bg-white/20 transition-all">01 📚 Dictionaries & Reference</button>
+                    <button onclick="setCategory('grammar')" id="cat-grammar" class="category-btn px-4 py-2 rounded-lg text-xs font-semibold bg-white/10 text-olive-200 hover:bg-white/20 transition-all">02 📝 Grammar & Practice</button>
+                    <button onclick="setCategory('literature')" id="cat-literature" class="category-btn px-4 py-2 rounded-lg text-xs font-semibold bg-white/10 text-olive-200 hover:bg-white/20 transition-all">03 📖 Readers & Literature</button>
+                </div>
+            </div>
+            
+            <!-- Sub-genres for Literature (Visible only when Literature or All is selected) -->
+            <div id="lit-subfilters" class="max-w-7xl mx-auto flex overflow-x-auto space-x-2 no-scrollbar pt-3 border-t border-olive-700/30 mt-2">
+                <span class="text-xs text-olive-300 self-center font-semibold whitespace-nowrap mr-1"><i class="fa-solid fa-filter mr-1"></i> Géneros Literarios:</span>
+                <button onclick="setSubGenre('all')" id="sub-all" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-olive-700 text-white whitespace-nowrap transition-all">Todos</button>
+                <button onclick="setSubGenre('children')" id="sub-children" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">🧒 Infantiles y Juveniles</button>
+                <button onclick="setSubGenre('classics')" id="sub-classics" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">📚 Clásicos Literarios</button>
+                <button onclick="setSubGenre('romance')" id="sub-romance" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">💞 Románticos y Contemporáneos</button>
+                <button onclick="setSubGenre('spiritual')" id="sub-spiritual" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">🧠 Espirituales y Crecimiento</button>
+                <button onclick="setSubGenre('science')" id="sub-science" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">🔬 Educativos y Científicos</button>
+                <button onclick="setSubGenre('adventure')" id="sub-adventure" class="subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all">⚔️ Aventura, Misterio y Acción</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT GRID -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <div id="book-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Books populated via JS -->
+        </div>
+
+        <!-- No Results State -->
+        <div id="no-results" class="hidden text-center py-20">
+            <div class="text-olive-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
+            <h3 class="text-lg font-bold text-olive-900">No se encontraron recursos</h3>
+            <p class="text-slate-500 text-xs mt-1">Pruebe utilizando otros términos de búsqueda o cambiando de categoría.</p>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <p>Sistema de Biblioteca Digital Universitaria • Sincronizado con Google Sheets Apps Script.</p>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION -->
+    <script>
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbyWyt0-O639hJMwilyWdo84Chs5tcAJZ0oa4n58-3Umto5CIbfFv5gZWbKmTMTtOFl8/exec";
+        let studentData = { name: "", email: "" };
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const name = document.getElementById('studentName').value.trim();
+            const email = document.getElementById('studentEmail').value.trim();
+            if(!name || !email) return;
+
+            studentData = { name, email };
+            document.getElementById('displayStudent').textContent = name;
+            document.getElementById('authModal').classList.add('hidden');
+            localStorage.setItem('esfocar_student', JSON.stringify(studentData));
+            sendLog("Inicio de Sesión", "Sistema General");
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('esfocar_student');
+            if(saved) {
+                try {
+                    studentData = JSON.parse(saved);
+                    document.getElementById('displayStudent').textContent = studentData.name;
+                    document.getElementById('authModal').classList.add('hidden');
+                } catch(e) {}
+            }
+            renderBooks(books);
+        });
+
+        function sendLog(actionName, bookTitle) {
+            if(!studentData.email) return;
+            const payload = {
+                nombre: studentData.name,
+                correo: studentData.email,
+                libro: bookTitle,
+                accion: actionName
+            };
+
+            fetch(scriptUrl, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).catch(err => console.log("Log sent"));
+        }
+
+        const books = [
+            // --- 01 Dictionaries & Reference ---
+            {
+                title: "Dictionary of Aviation",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Reference]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Glosario técnico de términos aeronáuticos y de navegación aérea.",
+                url: "https://drive.google.com/file/d/15uUOsnHs2pqTudDrXviIiEdvSfyio7Zq/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Dictionary of Banking and Finance",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Specialized]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Definiciones claras de términos bancarios, bursátiles y financieros.",
+                url: "https://drive.google.com/file/d/1e26cwCU_4R3IHu0-b0vzyZ2bZNDHSW4F/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Oxford Phrasal Verbs Dictionary",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Oxford]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Diccionario enfocado en los verbos frazales y su uso correcto.",
+                url: "https://drive.google.com/file/d/1ENUu33wK8dCVfQzGM6pXISPqy-pjGmoI/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Oxford Dictionary of Slang",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Slang]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Expresiones informales, jerga popular y modismos contemporáneos.",
+                url: "https://drive.google.com/file/d/1CJQOwIOHowmcjFkDnYzLTZUq5q-QNTso/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Oxford Picture Dictionary",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Visual]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Diccionario visual ilustrado para asimilación rápida de vocabulario.",
+                url: "https://drive.google.com/file/d/1WtnZJFWpvKWlHhPDZz1SmUyqV7Q65beM/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Webster's New Dictionary of Synonyms (1984)",
+                category: "dictionaries",
+                subgenre: "",
+                badge: "[Reference]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Obra clásica para encontrar sinónimos y enriquecer la escritura académica.",
+                url: "https://drive.google.com/file/d/1Foc-vxdkZABvOn-UXfXI1zO-8efHAxHl/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // --- 02 Grammar & Practice ---
+            {
+                title: "English Vocabulary in Use - Elementary",
+                category: "grammar",
+                subgenre: "",
+                badge: "[A1-A2]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Vocabulario básico con explicaciones claras y ejercicios prácticos cotidianos.",
+                url: "https://drive.google.com/file/d/1LoZjQNZ2vLLDQRFsvOZadvPUGSsQXhnV/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "English Collocations in Use - Advanced",
+                category: "grammar",
+                subgenre: "",
+                badge: "[C1-C2]",
+                badgeColor: "bg-emerald-100 text-emerald-800",
+                description: "Dominio avanzado de combinaciones léxicas para redacción superior.",
+                url: "https://drive.google.com/file/d/13PfQd97hfplZnwJs_jYEW8KB43-DzPcc/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "English Collocations in Use - Intermediate",
+                category: "grammar",
+                subgenre: "",
+                badge: "[B1-B2]",
+                badgeColor: "bg-emerald-100 text-emerald-800",
+                description: "Aprende cómo las palabras se combinan para sonar natural y fluido.",
+                url: "https://drive.google.com/file/d/1v_pS6CZx2Fy2pt6JP-l_7t4jOYNTFATo/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "English Vocabulary in Use - Elementary Test Book",
+                category: "grammar",
+                subgenre: "",
+                badge: "[Test Book]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Cuaderno de pruebas y evaluaciones para medir el progreso elemental.",
+                url: "https://drive.google.com/file/d/1ixLcxgBY-CVpU6fIKpOncFSsD6MLq667/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Market Leader: Accounting & Finance",
+                category: "grammar",
+                subgenre: "",
+                badge: "[Market]",
+                badgeColor: "bg-stone-200 text-stone-800",
+                description: "Inglés enfocado al área contable, financiera y de negocios.",
+                url: "https://drive.google.com/file/d/1Ed-FhTRxyDXYHhDqRjgrIcecA1T91tVa/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Phrasal Verbs and Idioms",
+                category: "grammar",
+                subgenre: "",
+                badge: "[Practice]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Guía de verbos frazales y modismos para conversación y formalidad.",
+                url: "https://drive.google.com/file/d/1xwPtElLyv8IEXuAa5L34ML_9ZxMe6pzg/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1507842229432-6a978f1897db?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // --- 03 Readers & Literature (Sub-genres) ---
+            // Infantiles y juveniles
+            {
+                title: "Good Night, Little Bear",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Kids]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Un cuento breve y tierno sobre un osito que se prepara para dormir.",
+                url: "https://drive.google.com/file/d/1gkjIIh7dHF7LyIo5sMkfeyHk7NdM3ucH/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Home for a Bunny",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Kids]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Un conejito busca el lugar perfecto para vivir, con un mensaje cálido.",
+                url: "https://drive.google.com/file/d/1pitmBHQ2OpGJY38BYZg64EjxzglIElMC/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1534567153574-2b12153a87f0?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Saggy Baggy Elephant",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Kids]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Un elefantito inseguro aprende a aceptarse tal como es.",
+                url: "https://drive.google.com/file/d/1z-oUoccCfedixTKH-HdxVM2OyaSCTJ1v/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1533227268428-f9ed0900fb3b?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Sailor Dog",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Kids]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "La aventura de un perrito marinero que sigue su sueño de navegar.",
+                url: "https://drive.google.com/file/d/1loy9E83BdL0aYv9mbun5trhCNQC5aPaH/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Usborne Little Book of Bedtime Stories",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Usborne]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Historias cortas para acompañar la rutina de dormir.",
+                url: "https://drive.google.com/file/d/1KGCvmZyYuD2L5R7YGHBswV9a-AbqN_C4/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Big Book of Nursery Rhymes",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Rhymes]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Colección de rimas clásicas para niños pequeños.",
+                url: "https://drive.google.com/file/d/1XXdV1gg9cYlCmFcPc_I4tQRCtLvBjasa/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Nursery Rhymes",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Rhymes]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Rimas tradicionales para aprender ritmo y lenguaje.",
+                url: "https://drive.google.com/file/d/1ITlsFGnU6Wxjx_UOcYYXbRB7bvl4959I/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1485546246426-74dc88dec4d9?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Where Is Hippo",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Interactive]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Libro de búsqueda simple donde los niños deben encontrar al hipopótamo.",
+                url: "https://drive.google.com/file/d/115SdRqIOOs-0a9LW0NnTroG9t6jxb9hD/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Gruffalo",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Story]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Un ratón ingenioso inventa un monstruo para protegerse en el bosque.",
+                url: "https://drive.google.com/file/d/12aopuRP0UOVcgVBEgiVeVwAiK21EIAcO/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Gruffalo’s Child",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Story]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "La hija del Gruffalo explora el bosque y descubre que el ratón no es temible.",
+                url: "https://drive.google.com/file/d/12lGZHsp3kFj-DOEIpNznbVSV33lfpU3X/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Snow White and the 7 Dwarfs",
+                category: "literature",
+                subgenre: "children",
+                badge: "[Fairytale]",
+                badgeColor: "bg-amber-100 text-amber-800",
+                description: "Adaptación infantil ilustrada del clásico cuento de Blancanieves.",
+                url: "https://drive.google.com/file/d/1I2DlS7_IwlXoSsKpIyFjxlYofN4g6UKl/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // Clásicos literarios
+            {
+                title: "Gulliver’s Travels",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Classic]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Viajes fantásticos que mezclan aventura y sátira social.",
+                url: "https://drive.google.com/file/d/17EHB0XhYNy1_M_Z1hXAA_JhTqcnJEGpy/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Dr. Jekyll and Mr. Hyde",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Classic]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "La lucha entre el bien y el mal dentro de una misma persona.",
+                url: "https://drive.google.com/file/d/1uDcvzmn7I5GRpFQIGqCUQjdBeJzwoYvL/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Black Beauty",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Classic]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "La vida de un caballo narrada con temas de empatía y cuidado animal.",
+                url: "https://drive.google.com/file/d/1k3_zaWU6Mi374VeFoUtflCOl_9Rl63Yg/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "A Morbid Taste for Bones",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Mystery]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Misterio histórico donde un monje investiga un crimen antiguo.",
+                url: "https://drive.google.com/file/d/15bPxuxSNUXsVWTv-TbbZlpEFoUvNKjyZ/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Eagle of the Ninth",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Historical]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Aventura romana sobre un joven que busca recuperar el honor familiar.",
+                url: "https://drive.google.com/file/d/1gVN9NGrO5rnazZ1Gd0Ss51UrcVJpQ8Uf/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Jungle Book (Level 2)",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Reader 2]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Historias de Mowgli y los animales adaptadas para lectores jóvenes.",
+                url: "https://drive.google.com/file/d/1VFkiIJn8cUOrm0lgdHqE5LkkmGG0muVp/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Phantom of the Opera (Level 1)",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Reader 1]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Romance y misterio en la Ópera de París en versión simplificada.",
+                url: "https://drive.google.com/file/d/1vf-DcTLJhhonGS5fyhUcpuavrzxC7Yns/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Time Machine (Level 4)",
+                category: "literature",
+                subgenre: "classics",
+                badge: "[Reader 4]",
+                badgeColor: "bg-olive-100 text-olive-800",
+                description: "Un viajero explora futuros distantes y reflexiona sobre la humanidad.",
+                url: "https://drive.google.com/file/d/1K0QR1mm0ntTyXnNlX-PWZG0qttFEzlRf/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // Románticos y contemporáneos
+            {
+                title: "Fifty Shades Darker",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[Trilogy]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Segunda parte de la trilogía de romance adulto y conflictos emocionales.",
+                url: "https://drive.google.com/file/d/1LTeoRpmyea3Nt2vIaELjn3VXW1PBjs0b/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Fifty Shades Freed",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[Trilogy]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Desenlace de la popular trilogía literaria romántica.",
+                url: "https://drive.google.com/file/d/1RaKCCjTa-p0AeJaB8rA7aekN9jwLNiWW/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Fifty Shades of Grey",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[Trilogy]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Inicio de la exitosa saga literaria de E.L. James.",
+                url: "https://drive.google.com/file/d/1qb-BVo04q4gXHdiLM-aLXgchxyKqBf8h/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "I Was Here",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Fiction]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Una joven enfrenta la pérdida de su mejor amiga y busca respuestas.",
+                url: "https://drive.google.com/file/d/1FMUixjiX-foQmzak4j4zXIxWnqKrRmAB/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "P.S. I Still Love You",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Romance]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Continuación del romance adolescente de Lara Jean.",
+                url: "https://drive.google.com/file/d/1QsP0HUK5NQ7SPqamMOFpCg1R22KdacJK/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Saint Anything",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Drama]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Una chica intenta reconstruir su vida mientras enfrenta la sombra de su hermano.",
+                url: "https://drive.google.com/file/d/1-pzekMzOQL-kQrC-FKHkOBN26WIq_1qU/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Simon vs the Homo Sapiens Agenda",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Romance]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Un adolescente navega su identidad y un romance secreto escolar.",
+                url: "https://drive.google.com/file/d/1fLOcALLtFfwEutspVH5Gid9thFQ43JBp/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "My Heart and Other Black Holes",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Drama]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Dos jóvenes con dolor emocional encuentran apoyo mutuo.",
+                url: "https://drive.google.com/file/d/1UfXb07mLGJIBooi6evILQOay_AZ7oALs/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1485738422979-f5c462d49f74?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "More Happy Than Not",
+                category: "literature",
+                subgenre: "romance",
+                badge: "[YA Sci-Fi]",
+                badgeColor: "bg-rose-100 text-rose-800",
+                description: "Un chico explora su identidad en un mundo con tecnología para borrar recuerdos.",
+                url: "https://drive.google.com/file/d/1lAs_UzbepChOSd1XK-o5CLUG7H432yL6/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // Espirituales, reflexivos y crecimiento
+            {
+                title: "Advice for Spiritual Revolutionaries",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Reflexión]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Reflexiones para quienes buscan una espiritualidad libre y crítica.",
+                url: "https://drive.google.com/file/d/1tYoJdZ_0gHCkIm88bTBWZsuA6eVgueVE/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "150 Encouraging Devotions for Women",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Devocional]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Devocionales breves para fortalecer la fe y el ánimo diario.",
+                url: "https://drive.google.com/file/d/1PCIRerlXRNR-7qKqvlkASOzaKaWk2M9p/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Big Book of Angel Stories",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Espiritual]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Relatos sobre experiencias espirituales y mensajes inspiradores.",
+                url: "https://drive.google.com/file/d/11u93CCOuQMLDUl8F4Zb_A3N_gG4CnyOn/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Buddha: An Alternative Narrative",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Filosofía]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Una mirada distinta a la vida y enseñanzas del Buda.",
+                url: "https://drive.google.com/file/d/1RFaFi38egwYiH1g1mj3LR3v3EfuDsex-/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Secret of The Secret",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Autoayuda]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Explicación y análisis del pensamiento positivo y la ley de atracción.",
+                url: "https://drive.google.com/file/d/18BMaAU6Dsa9EuusWSGtIxhthfTbd9BYG/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Mental Game of Writing",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Productividad]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Consejos prácticos para superar bloqueos creativos y mantener disciplina.",
+                url: "https://drive.google.com/file/d/1Eawb1FJ2GfHsviC_1vvekro0AgRPl9RP/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Why Mars and Venus Collide",
+                category: "literature",
+                subgenre: "spiritual",
+                badge: "[Relaciones]",
+                badgeColor: "bg-teal-100 text-teal-800",
+                description: "Guía para mejorar relaciones entendiendo diferencias emocionales.",
+                url: "https://drive.google.com/file/d/1D3rul5V7fHEP03q21rr3UDscBc3UtXsU/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // Educativos y científicos
+            {
+                title: "Human Longevity",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Ciencia]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Factores clave que influyen en la salud y la duración de la vida.",
+                url: "https://drive.google.com/file/d/18IkdGB4fvI7co4NeicFSRpvLw2At3LaL/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "A New Approach to Textual Criticism",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Académico]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Método académico avanzado para analizar manuscritos antiguos.",
+                url: "https://drive.google.com/file/d/1sdXvNdi82eVgB4kMS9E3Mglq9_2pFvKR/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "One Day in the Life of the English Language",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Lingüística]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Exploración del idioma inglés a través de ejemplos cotidianos.",
+                url: "https://drive.google.com/file/d/1YOdi0BfrC_wN3d0trex389vTCAeSL_-o/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Weird World of Words",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Lingüística]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Curiosidades lingüísticas y fenómenos fascinantes del lenguaje.",
+                url: "https://drive.google.com/file/d/1A0hlEhaNL4ZjQ83_J9VvGSQ9vSxpPrx8/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Inventions that Changed the World",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Tecnología]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Inventos que marcaron hitos históricos y tecnológicos de la humanidad.",
+                url: "https://drive.google.com/file/d/1kqW3-mL00Lkrfkd8qGCinG2dURHOQEXg/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "So You Think You Can Spell",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Ortografía]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Desafíos y ejercicios para mejorar la ortografía en inglés.",
+                url: "https://drive.google.com/file/d/1e1lvzwtMF17KA8NaNPfgRJFMDfTxUShJ/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Starters – Word List Picturebook",
+                category: "literature",
+                subgenre: "science",
+                badge: "[Vocabulary]",
+                badgeColor: "bg-cyan-100 text-cyan-800",
+                description: "Libro visual para aprender vocabulario básico de nivel inicial.",
+                url: "https://drive.google.com/file/d/1G3BRKMVLDiAK_psOoRVNtax5By1P-M7t/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80"
+            },
+
+            // Aventura, misterio y acción
+            {
+                title: "A Dead Hand",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Thriller]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Misterio en Calcuta donde un escritor se ve envuelto en un crimen.",
+                url: "https://drive.google.com/file/d/1Iaw7vQBKdu2ZTyHea7D7caM1knz_8oex/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Age of Frenzy",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Historical]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Novela sobre conflictos y tensiones en la India medieval.",
+                url: "https://drive.google.com/file/d/1ex7hlf5dXMYNFsoswMxwKzGYlnaqHfiP/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Conspiracy at Meru",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Action]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Thriller sobre una conspiración que mezcla historia y acción trepidante.",
+                url: "https://drive.google.com/file/d/1NE2k-bC-ZhGoNK9QyVx_KuGJa4vAZRYz/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Four Patriots",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Political]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Aventura política donde cuatro ciudadanos enfrentan la corrupción.",
+                url: "https://drive.google.com/file/d/11qV2i17Qnw-tGj1m_vRlsSSENoue9n6a/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Guardians of the Halahala",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Fantasy]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Fantasía épica inspirada en la rica mitología india.",
+                url: "https://drive.google.com/file/d/12lGZHsp3kFj-DOEIpNznbVSV33lfpU3X/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The Indus Challenge",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Adventure]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Aventura histórica ambientada en la antigua civilización del Indo.",
+                url: "https://drive.google.com/file/d/1Dnr_90dV1yebQiGcG8kB4QkKuaWZii5O/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "ISRO – A Personal History",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Biography]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Relato personal sobre la agencia espacial india y sus logros históricos.",
+                url: "https://drive.google.com/file/d/1826IAAALwI_JsbhG18_XXqohAXNc265V/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Manchester United – Penguin Readers 3",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Reader 3]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Historia oficial del club de fútbol para lectores intermedios.",
+                url: "https://drive.google.com/file/d/1ARtMEIXmw5uahU4hN2Fmrv_UwsMY47Ry/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "Titanic – Penguin Readers 3",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Reader 3]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Relato accesible sobre el famoso transatlántico y su naufragio.",
+                url: "https://drive.google.com/file/d/1tU3OH2xJ47QRMtjDgKbuzcf8q2l7PBC_/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "The USA – Oxford Factfiles",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Factfiles]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Datos y curiosidades sobre la geografía y cultura de Estados Unidos.",
+                url: "https://drive.google.com/file/d/1ee0GL9EBHNjnXbjhf3uDnkCGgNL1NjtP/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1485738422979-f5c462d49f74?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                title: "12-21 Sacred Artifice",
+                category: "literature",
+                subgenre: "adventure",
+                badge: "[Mystery]",
+                badgeColor: "bg-purple-100 text-purple-800",
+                description: "Novela de misterio con artefactos sagrados y tramas trepidantes.",
+                url: "https://drive.google.com/file/d/1maeXJhtPWLSY5FoNnWx0cuKQJ5kXFVMb/view?usp=drive_link",
+                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80"
+            }
+        ];
+
+        let currentCategory = 'all';
+        let currentSubGenre = 'all';
+
+        function renderBooks(filteredBooks) {
+            const grid = document.getElementById('book-grid');
+            const noResults = document.getElementById('no-results');
+            grid.innerHTML = '';
+
+            if (filteredBooks.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            filteredBooks.forEach(book => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-olive-200/60 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group';
+                
+                card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img src="${book.cover}" alt="${book.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
+                        <div class="absolute top-3 left-3">
+                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold shadow-md ${book.badgeColor}">${book.badge}</span>
+                        </div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <span class="text-[11px] font-semibold text-white/90 uppercase tracking-wider"><i class="fa-regular fa-folder-open mr-1"></i>${book.category === 'dictionaries' ? 'Diccionarios' : book.category === 'grammar' ? 'Gramática' : 'Literatura'}</span>
+                        </div>
+                    </div>
+                    <div class="p-5 flex flex-col flex-grow justify-between">
+                        <div>
+                            <h3 class="font-bold text-olive-900 text-sm sm:text-base mb-2 leading-snug group-hover:text-olive-600 transition-colors">${book.title}</h3>
+                            <p class="text-slate-600 text-xs leading-relaxed mb-4">${book.description}</p>
+                        </div>
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-end mt-auto">
+                            <button onclick="openBook('${book.title.replace(/'/g, "\\'")}', '${book.url}')" class="inline-flex items-center space-x-1.5 bg-olive-50 hover:bg-olive-700 text-olive-800 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm w-full justify-center">
+                                <span>Ver / Descargar PDF</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openBook(bookTitle, url) {
+            sendLog("Descarga / Apertura", bookTitle);
+            window.open(url, '_blank');
+        }
+
+        function setCategory(category) {
+            currentCategory = category;
+            currentSubGenre = 'all'; // reset subgenre when changing main category
+            
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.className = "category-btn px-4 py-2 rounded-lg text-xs font-semibold bg-white/10 text-olive-200 hover:bg-white/20 transition-all";
+            });
+            const activeBtn = document.getElementById(`cat-${category}`);
+            if(activeBtn) {
+                activeBtn.className = "category-btn px-4 py-2 rounded-lg text-xs font-bold bg-olive-600 text-white transition-all shadow-sm";
+            }
+
+            const subfiltersBar = document.getElementById('lit-subfilters');
+            if(category === 'literature' || category === 'all') {
+                subfiltersBar.classList.remove('hidden');
+            } else {
+                subfiltersBar.classList.add('hidden');
+            }
+
+            filterBooks();
+        }
+
+        function setSubGenre(subgenre) {
+            currentSubGenre = subgenre;
+
+            document.querySelectorAll('.subgenre-btn').forEach(btn => {
+                btn.className = "subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-white/10 text-olive-200 hover:bg-white/20 whitespace-nowrap transition-all";
+            });
+            const activeSub = document.getElementById(`sub-${subgenre}`);
+            if(activeSub) {
+                activeSub.className = "subgenre-btn px-3 py-1 rounded-md text-[11px] font-medium bg-olive-700 text-white whitespace-nowrap transition-all";
+            }
+
+            filterBooks();
+        }
+
+        function filterBooks() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = books.filter(book => {
+                const matchesCategory = (currentCategory === 'all' || book.category === currentCategory);
+                const matchesSubGenre = (currentSubGenre === 'all' || book.subgenre === currentSubGenre || book.category !== 'literature');
+                const matchesQuery = book.title.toLowerCase().includes(query) || book.description.toLowerCase().includes(query);
+                
+                if (currentCategory === 'literature' && currentSubGenre !== 'all') {
+                    return book.category === 'literature' && book.subgenre === currentSubGenre && matchesQuery;
+                }
+
+                return matchesCategory && matchesSubGenre && matchesQuery;
+            });
+
+            renderBooks(filtered);
+        }
+    </script>
+</body>
+</html>
